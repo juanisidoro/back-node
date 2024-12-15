@@ -76,24 +76,11 @@ Para cerrar sesión, simplemente haces un `POST` al endpoint `/auth/logout` con 
 Checklist del flujo correcto en el frontend
 -------------------------------------------
 
-Paso
+## Checklist del flujo correcto en el frontend
 
-Acción requerida
-
-Obtener token CSRF
-
-`GET /csrf-token`, usar `credentials: 'include'` para enviar cookies automáticamente.
-
-Login
-
-`POST /auth/login` con el token CSRF en el header `X-CSRF-Token`.
-
-Usar endpoints protegidos
-
-Incluir el token CSRF en `X-CSRF-Token` y las cookies se envían automáticamente.
-
-Logout
-
-`POST /auth/logout`, el backend elimina la cookie JWT automáticamente.
-
-Este flujo asegura que las cookies `HttpOnly` y el token CSRF trabajen juntas para proteger la aplicación.
+| Paso                      | Acción requerida                                                                 |
+|---------------------------|----------------------------------------------------------------------------------|
+| Obtener token CSRF        | `GET /csrf-token`, usar `credentials: 'include'` para enviar cookies automáticamente. |
+| Login                     | `POST /auth/login` con el token CSRF en el header `X-CSRF-Token`.                |
+| Usar endpoints protegidos | Incluir el token CSRF en `X-CSRF-Token` y las cookies se envían automáticamente. |
+| Logout                    | `POST /auth/logout`, el backend elimina la cookie JWT automáticamente.          |
