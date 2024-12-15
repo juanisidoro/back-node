@@ -6,7 +6,7 @@ const SECRET_KEY = process.env.SECRET_KEY;
 const REFRESH_SECRET_KEY = process.env.REFRESH_SECRET_KEY;
 
 async function register(req, res) {
-  const { name, email, password } = req.body;
+  const { name=null, email, password } = req.body;
 
   const userRef = db.collection('users').where('email', '==', email);
   const userSnapshot = await userRef.get();

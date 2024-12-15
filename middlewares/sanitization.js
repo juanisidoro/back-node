@@ -1,7 +1,7 @@
 const { body, validationResult } = require('express-validator');
 
 const validateRegister = [
-  body('name').isString().trim().escape().notEmpty().withMessage('El nombre es obligatorio'),
+  body('name').optional().isString().trim().escape().withMessage('El nombre debe ser una cadena de texto'),
   body('email').isEmail().normalizeEmail().withMessage('El correo no es válido'),
   body('password').isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres'),
   (req, res, next) => {
