@@ -1,7 +1,7 @@
 const express = require('express');
 const asyncHandler = require('express-async-handler');
 const { validateRegister } = require('../middlewares/sanitization');
-const { register, login, refreshToken } = require('../services/authService');
+const { register, login, refreshToken, logout } = require('../services/authService');
 
 const router = express.Router();
 
@@ -13,5 +13,8 @@ router.post('/login', asyncHandler(login));
 
 // Refresh token
 router.post('/refresh', asyncHandler(refreshToken));
+
+//Logout
+router.post('/logout', logout); 
 
 module.exports = router;

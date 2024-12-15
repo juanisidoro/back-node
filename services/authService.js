@@ -48,7 +48,16 @@ async function login(req, res) {
   const refreshToken = jwt.sign({ email: user.email }, REFRESH_SECRET_KEY);
 
   await db.collection('tokens').doc(userDoc.id).set({ refresh_token: refreshToken });
-  res.json({ token, refreshToken });
+
+  // Configura la cookie HttpOnly
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
+    sameSite: 'strict', // Mitigación de CSRF
+    maxAge: 15 * 60 * 1000, // 15 minutos
+  });
+
+  res.json({ message: 'Inicio de sesión exitoso', refreshToken });
 }
 
 async function refreshToken(req, res) {
@@ -56,7 +65,34 @@ async function refreshToken(req, res) {
 
   const decoded = jwt.verify(refreshToken, REFRESH_SECRET_KEY);
   const newToken = jwt.sign({ email: decoded.email }, SECRET_KEY, { expiresIn: '15m' });
+
+  // Opcional: Actualizar el token en la cookie
+  res.cookie('token', newToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 15 * 60 * 1000,
+  });
+
   res.json({ token: newToken });
 }
 
-module.exports = { register, login, refreshToken };
+async function logout(req, res) {
+  // (Opcional) Eliminar el refresh token de la base de datos
+  const token = req.cookies.token;
+  if (token) {
+    const decoded = jwt.verify(token, SECRET_KEY);
+    await db.collection('tokens').doc(decoded.id).delete();
+  }
+
+  // Limpiar la cookie de autenticación
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+
+  res.json({ message: 'Sesión cerrada exitosamente' });
+}
+
+module.exports = { register, login, refreshToken, logout };
