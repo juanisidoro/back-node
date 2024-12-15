@@ -58,3 +58,24 @@
 - `GET /users/:id` - Obtener información de un usuario específico (autenticado).
 - `PUT /users/:id` - Actualizar información de un usuario (autenticado o admin).
 - `DELETE /users/:id` - Eliminar un usuario (autenticado o admin).
+
+---
+
+# Checklist seguridad
+- Token JWT enviado como cookie HttpOnly.
+- Cookie marcada como Secure en producción.
+- Cookie configurada con SameSite: strict o lax.
+- Middleware de autenticación lee el token de la cookie.
+- Token CSRF implementado y validado.
+- CORS configurado para permitir cookies.
+- Endpoint /auth/logout elimina la cookie.
+
+
+---
+
+## Protección CSRF
+
+Este proyecto implementa protección contra ataques **CSRF (Cross-Site Request Forgery)**, asegurando que todas las solicitudes sensibles sean legítimas y provengan de usuarios autenticados. 
+
+Puedes encontrar más información y detalles sobre cómo funciona el token CSRF en el archivo dedicado:  
+👉 [Guía de CSRF](https://github.com/juanisidoro/back-node/blob/main/README_CSRF.md)

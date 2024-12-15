@@ -1,6 +1,4 @@
-  Flujo de CSRF y Cookies HttpOnly body { font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; } h1, h2, h3 { color: #333; } pre { background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 5px; overflow-x: auto; } code { background-color: #f4f4f4; padding: 2px 5px; border-radius: 3px; } table { width: 100%; border-collapse: collapse; margin: 20px 0; } table th, table td { border: 1px solid #ddd; padding: 8px; text-align: left; } table th { background-color: #f2f2f2; }
-
-Flujo correcto en el cliente
+Flujo correcto en el cliente para CSRF
 ============================
 
 1\. Obtener el token CSRF
