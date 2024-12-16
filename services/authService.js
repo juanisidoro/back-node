@@ -6,9 +6,9 @@ const SECRET_KEY = process.env.SECRET_KEY;
 const REFRESH_SECRET_KEY = process.env.REFRESH_SECRET_KEY;
 
 async function register(req, res) {
-  const { name=null, email, password } = req.body;
+  const { name = null, email, password } = req.body;
 
-  const userRef = db.collection('users').where('email', '==', email);
+  const userRef = db.collection('users').where('profile.email', '==', email);
   const userSnapshot = await userRef.get();
   if (!userSnapshot.empty) {
     return res.status(400).json({ message: 'El usuario ya existe' });
@@ -16,11 +16,16 @@ async function register(req, res) {
 
   const hashedPassword = await bcrypt.hash(password, 10);
   const newUser = {
-    name,
-    email,
-    password: hashedPassword,
-    role: 'user',
-    registration_date: new Date().toISOString(),
+    profile: {
+      name,
+      email,
+      password: hashedPassword,
+      role: 'user',
+      site_url: null,
+      basic_auth_username: null,
+      basic_auth_password: null,
+      registration_date: new Date().toISOString()
+    }
   };
 
   await db.collection('users').add(newUser);
@@ -30,14 +35,15 @@ async function register(req, res) {
 async function login(req, res) {
   const { email, password } = req.body;
 
-  const userRef = db.collection('users').where('email', '==', email);
+  const userRef = db.collection('users').where('profile.email', '==', email);
   const userSnapshot = await userRef.get();
   if (userSnapshot.empty) {
     return res.status(400).json({ message: 'Usuario no encontrado' });
   }
 
   const userDoc = userSnapshot.docs[0];
-  const user = userDoc.data();
+  const userData = userDoc.data();
+  const user = userData.profile;
 
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) {
@@ -52,8 +58,8 @@ async function login(req, res) {
   // Configura la cookie HttpOnly
   res.cookie('token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
-    sameSite: 'strict', // Mitigación de CSRF
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
     maxAge: 15 * 60 * 1000, // 15 minutos
   });
 
@@ -67,19 +73,17 @@ async function refreshToken(req, res) {
   const newToken = jwt.sign({ email: decoded.email }, SECRET_KEY, { expiresIn: '15m' });
 
   // Opcional: Actualizar el token en la cookie
-  res.cookie('token', token, {
+  res.cookie('token', newToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // Relajar SameSite en desarrollo
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
     maxAge: 15 * 60 * 1000, // 15 minutos
   });
-  console.log('Cookie configurada con token:', token);
 
   res.json({ token: newToken });
 }
 
 async function logout(req, res) {
-  // (Opcional) Eliminar el refresh token de la base de datos
   const token = req.cookies.token;
   if (token) {
     const decoded = jwt.verify(token, SECRET_KEY);

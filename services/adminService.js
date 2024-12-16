@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const { db } = require('../firebase');
 
 async function createDefaultAdmin(adminConfig) {
-  const adminRef = db.collection('users').where('role', '==', 'admin');
+  const adminRef = db.collection('users').where('profile.role', '==', 'admin');
   const adminSnapshot = await adminRef.get();
 
   if (adminSnapshot.empty) {
@@ -10,14 +10,16 @@ async function createDefaultAdmin(adminConfig) {
     const hashedPassword = await bcrypt.hash(adminConfig.password, 10);
 
     await db.collection('users').add({
-      name: adminConfig.name,
-      email: adminConfig.email,
-      password: hashedPassword,
-      role: 'admin',
-      site_url: null,
-      api_key: null,
-      api_secret: null,
-      registration_date: new Date().toISOString(),
+      profile: {
+        name: adminConfig.name,
+        email: adminConfig.email,
+        password: hashedPassword,
+        role: 'admin',
+        site_url: null,
+        basic_auth_username: null,
+        basic_auth_password: null,
+        registration_date: new Date().toISOString()
+      }
     });
 
     console.log(
