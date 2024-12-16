@@ -1,7 +1,7 @@
 const express = require('express');
 const asyncHandler = require('express-async-handler');
 const { authenticate, authorizeAdmin } = require('../middlewares/authMiddleware');
-const { getUsers, getAuthenticatedUser, getUserById, updateUser, deleteUser } = require('../services/userService');
+const { getAuthenticatedUser, getUserById, updateUser, deleteUser } = require('../services/userService');
 
 const router = express.Router();
 

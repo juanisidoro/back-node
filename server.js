@@ -8,9 +8,11 @@ const rateLimiter = require('./middlewares/rateLimiter');
 const loggingMiddleware = require('./middlewares/loggingMiddleware');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
+const shopRoutes = require('./routes/shopRoutes');
+const syncRoutes = require('./routes/syncRoutes');
 
 // Validar variables de entorno
-['SECRET_KEY', 'REFRESH_SECRET_KEY', 'DEFAULT_ADMIN_NAME', 'DEFAULT_ADMIN_EMAIL', 'DEFAULT_ADMIN_PASSWORD'].forEach((envVar) => {
+['SECRET_KEY', 'REFRESH_SECRET_KEY', 'DEFAULT_ADMIN_NAME', 'DEFAULT_ADMIN_EMAIL', 'DEFAULT_ADMIN_PASSWORD', 'ENCRYPTION_KEY'].forEach((envVar) => {
   if (!process.env[envVar]) {
     throw new Error(`La variable de entorno ${envVar} es obligatoria`);
   }
@@ -21,10 +23,10 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Configuración de seguridad
-securityMiddleware(app); // Helmet, CORS, XSS-clean
-//app.use(rateLimiter); // Limitar solicitudes
-app.use(csrfProtection); // Protección CSRF
-app.use(loggingMiddleware); //Middleware de logging
+securityMiddleware(app);
+//app.use(rateLimiter);
+app.use(csrfProtection);
+app.use(loggingMiddleware);
 
 // Ejemplo de token CSRF
 app.get('/csrf-token', (req, res) => {
@@ -32,8 +34,10 @@ app.get('/csrf-token', (req, res) => {
 });
 
 // Rutas
-app.use('/auth', authRoutes); // Rutas de autenticación
-app.use('/users', userRoutes); // Rutas de usuarios
+app.use('/auth', authRoutes); 
+app.use('/users', userRoutes); 
+app.use('/shops', shopRoutes);
+app.use('/sync', syncRoutes);
 
 // Controlador de errores global
 app.use((err, req, res, next) => {

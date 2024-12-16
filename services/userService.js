@@ -14,15 +14,6 @@ async function getUsers() {
 // Obtener datos del usuario autenticado o todos si es admin
 async function getAuthenticatedUser(req, res) {
   const userId = req.user.id;
-  const userRole = req.user.role;
-
-  if (userRole === 'admin') {
-    // Si es admin, devolver todos los usuarios
-    const allUsers = await getUsers();
-    return res.json(allUsers);
-  }
-
-  // Si es user, devolver solo su información
   const userRef = db.collection('users').doc(userId);
   const userDoc = await userRef.get();
 
@@ -31,6 +22,17 @@ async function getAuthenticatedUser(req, res) {
   }
 
   const userData = userDoc.data();
+  // Si es admin, devolver lista completa de usuarios (como se hizo antes)
+  if (req.user.role === 'admin') {
+    const usersSnapshot = await db.collection('users').get();
+    const users = usersSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return { id: doc.id, profile: data.profile };
+    });
+    return res.json(users);
+  }
+
+  // Si es user, devolver solo su información
   res.json({ id: userDoc.id, profile: userData.profile });
 }
 

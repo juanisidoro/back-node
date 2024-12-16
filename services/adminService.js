@@ -15,10 +15,8 @@ async function createDefaultAdmin(adminConfig) {
         email: adminConfig.email,
         password: hashedPassword,
         role: 'admin',
-        site_url: null,
-        basic_auth_username: null,
-        basic_auth_password: null,
-        registration_date: new Date().toISOString()
+        registration_date: new Date().toISOString(),
+        shops: []
       }
     });
 

@@ -22,10 +22,8 @@ async function register(req, res) {
       email,
       password: hashedPassword,
       role: 'user',
-      site_url: null,
-      basic_auth_username: null,
-      basic_auth_password: null,
-      registration_date: new Date().toISOString()
+      registration_date: new Date().toISOString(),
+      shops: []
     }
   };
 
