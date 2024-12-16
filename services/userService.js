@@ -1,4 +1,5 @@
 const { db } = require('../firebase');
+const { encrypt } = require('../utils/cryptoUtil');
 
 // Obtener todos los usuarios (para admin)
 async function getUsers() {
@@ -73,19 +74,27 @@ async function updateUser(req, res) {
     if (key === 'registration_date') {
       continue; // No actualizar registration_date
     }
+    // Si se actualizan las credenciales, encriptarlas antes de guardar
+    if (key === 'basic_auth_username' && value) {
+      profileUpdates['profile.basic_auth_username'] = encrypt(value);
+      continue;
+    }
+    if (key === 'basic_auth_password' && value) {
+      profileUpdates['profile.basic_auth_password'] = encrypt(value);
+      continue;
+    }
     profileUpdates[`profile.${key}`] = value;
   }
 
   if (Object.keys(profileUpdates).length === 0) {
     // No se realizan cambios
-    return res.status(204).send(); // Sin contenido
+    return res.status(204).send();
   }
 
   await targetUserRef.update(profileUpdates);
-  // Operación exitosa sin contenido en la respuesta
+  // 204 indica que se realizó la actualización sin contenido en el cuerpo
   res.status(204).send();
 }
-
 
 // Eliminar un usuario específico (solo admin)
 async function deleteUser(req, res) {
