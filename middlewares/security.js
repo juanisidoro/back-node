@@ -11,10 +11,16 @@ module.exports = (app) => {
   // Configuración de CORS
   app.use(
     cors({
-      origin: NODE_ENV === 'production' ? 'https://mi-app.com' : 'http://localhost:3000',
-      credentials: true, // Permitir cookies
+      origin:  'https://18qqdw9d-4321.uks1.devtunnels.ms',
+      credentials: true, // Asegúrate de permitir credenciales
+      allowedHeaders: [
+        'Content-Type',
+        'X-CSRF-Token', // Agrega esta cabecera
+        'Authorization',
+      ],
     })
   );
+  
 
   // Limpieza de entradas contra XSS
   app.use(xss());

@@ -5,6 +5,7 @@ const { createDefaultAdmin } = require('./services/adminService');
 const securityMiddleware = require('./middlewares/security');
 const csrfProtection = require('./middlewares/csrfProtection');
 const rateLimiter = require('./middlewares/rateLimiter');
+const loggingMiddleware = require('./middlewares/loggingMiddleware');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 
@@ -21,8 +22,9 @@ app.use(cookieParser());
 
 // Configuración de seguridad
 securityMiddleware(app); // Helmet, CORS, XSS-clean
-app.use(rateLimiter); // Limitar solicitudes
+//app.use(rateLimiter); // Limitar solicitudes
 app.use(csrfProtection); // Protección CSRF
+app.use(loggingMiddleware); //Middleware de logging
 
 // Ejemplo de token CSRF
 app.get('/csrf-token', (req, res) => {
