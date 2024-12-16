@@ -1,14 +1,23 @@
 const express = require('express');
 const asyncHandler = require('express-async-handler');
-const { authenticate, authorizeAdmin } = require('../middlewares/authMiddleware'); // Verifica esta ruta
-const { getUsers, getUserById, updateUser, deleteUser } = require('../services/userService');
+const { authenticate, authorizeAdmin } = require('../middlewares/authMiddleware');
+const { getUsers, getUserById, getAuthenticatedUser, updateUser, deleteUser } = require('../services/userService');
 
 const router = express.Router();
 
-// Rutas de usuarios
-router.get('/', authenticate, authorizeAdmin, asyncHandler(getUsers));
-router.get('/:id', authenticate, asyncHandler(getUserById));
+// Obtener datos del usuario autenticado
+router.get('/', authenticate, asyncHandler(getAuthenticatedUser));
+
+// Listar todos los usuarios (admin)
+router.get('/all', authenticate, authorizeAdmin, asyncHandler(getUsers));
+
+// Obtener datos de un usuario específico (admin)
+router.get('/:id', authenticate, authorizeAdmin, asyncHandler(getUserById));
+
+// Actualizar datos de un usuario específico (propio o admin)
 router.put('/:id', authenticate, asyncHandler(updateUser));
-router.delete('/:id', authenticate, asyncHandler(deleteUser));
+
+// Eliminar un usuario específico (admin)
+router.delete('/:id', authenticate, authorizeAdmin, asyncHandler(deleteUser));
 
 module.exports = router;

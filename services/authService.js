@@ -67,12 +67,13 @@ async function refreshToken(req, res) {
   const newToken = jwt.sign({ email: decoded.email }, SECRET_KEY, { expiresIn: '15m' });
 
   // Opcional: Actualizar el token en la cookie
-  res.cookie('token', newToken, {
+  res.cookie('token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 15 * 60 * 1000,
+    secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // Relajar SameSite en desarrollo
+    maxAge: 15 * 60 * 1000, // 15 minutos
   });
+  console.log('Cookie configurada con token:', token);
 
   res.json({ token: newToken });
 }
