@@ -85,8 +85,8 @@ async function deleteShop(userId, shopId, userRole) {
 
 
 // Validar que un shop pertenece a un usuario
-async function verifyShopOwnership(userId, shopId) {
-  console.log(`Verificando propiedad de la tienda: userId=${userId}, shopId=${shopId}`);
+async function verifyShopOwnership(userId, shopId, userRole) {
+  console.log(`Verificando propiedad de la tienda: userId=${userId}, shopId=${shopId}, role=${userRole}`);
   
   const shop = await getShop(shopId);
   console.log('Datos de la tienda obtenidos desde Firestore:', shop);
@@ -96,11 +96,18 @@ async function verifyShopOwnership(userId, shopId) {
     return false;
   }
 
+  // Permitir a administradores realizar la acción
+  if (userRole === 'admin') {
+    console.log('Usuario con rol admin. Acceso permitido.');
+    return true;
+  }
+
+  // Validación para usuarios normales
   console.log(`Propietario esperado: ${shop.ownerUserId}`);
   console.log(`Usuario autenticado: ${userId}`);
-
   return shop.ownerUserId === userId;
 }
+
 
 
 module.exports = { createShop, getShop, getUserShops, deleteShop, verifyShopOwnership };

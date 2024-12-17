@@ -2,9 +2,9 @@
 const { db } = require('../firebase');
 const { verifyShopOwnership } = require('./shopService');
 
-async function initiateSync({ userId, shopId }) {
-  // Verificar que la tienda pertenece al usuario
-  const isOwner = await verifyShopOwnership(userId, shopId);
+async function initiateSync({ userId, shopId, userRole }) {
+  // Verificar que la tienda pertenece al usuario o que es admin
+  const isOwner = await verifyShopOwnership(userId, shopId, userRole);
   if (!isOwner) throw new Error('No autorizado');
 
   const shopRef = db.collection('shops').doc(shopId);
@@ -21,7 +21,7 @@ async function initiateSync({ userId, shopId }) {
     created_at: new Date().toISOString()
   });
 
-  // Responder inmediatamente
+  console.log(`Sincronización iniciada para la tienda: ${shopId}`);
   return true;
 }
 

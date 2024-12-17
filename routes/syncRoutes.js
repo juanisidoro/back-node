@@ -9,15 +9,16 @@ const router = express.Router();
 router.post('/:shopId', authenticate, asyncHandler(async (req, res) => {
   const { shopId } = req.params;
 
-  console.log(`ID del usuario autenticado: ${req.user.id}`);
+  console.log(`ID del usuario autenticado: ${req.user.id}, Rol: ${req.user.role}`);
   console.log(`ShopId recibido: ${shopId}`);
 
   await initiateSync({
-    userId: req.user.id, // Verifica que este userId sea correcto
-    shopId
+    userId: req.user.id,
+    shopId,
+    userRole: req.user.role
   });
 
-  res.status(202).send();
+  res.status(202).json({ message: 'Sincronización iniciada correctamente.' });
 }));
 
 
