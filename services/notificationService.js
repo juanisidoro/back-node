@@ -1,22 +1,18 @@
 const { db } = require('../firebase');
-const admin = require('firebase-admin');
 
-// Crear una notificación para un usuario y una tienda
-async function createNotification({ userId, shopId, type, success, message }) {
-  const timestamp = new Date().toISOString();
-
-  const notifRef = db.collection('notifications')
-    .doc(userId)
-    .collection('shops')
-    .doc(shopId)
-    .collection('notifications');
-
-  await notifRef.add({
+async function createNotification({ userId, shopId, type, message, initiator, success = null }) {
+  const notificationRef = db.collection(`notifications/${userId}/${shopId}`);
+  await notificationRef.add({
+    shop_id: shopId,
+    user_id: userId,
     type,
-    success,
     message,
-    timestamp
+    created_at: new Date().toISOString(),
+    success,
+    initiator,
+    read: false
   });
+  console.log(`Notificación creada: ${message}`);
 }
 
 module.exports = { createNotification };

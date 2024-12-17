@@ -15,7 +15,9 @@ async function createShop({ userId, site_url, basic_auth_username, basic_auth_pa
     last_sync_date: null,
     last_sync_success: false,
     sync_status: 'idle',
-    members: [] // Futuro uso
+    members: [
+      { userId: userId, isOwner: true, notifications_enabled: true } // Propietario por defecto
+    ]
   };
 
   // Crear la tienda y obtener el ID
@@ -30,6 +32,7 @@ async function createShop({ userId, site_url, basic_auth_username, basic_auth_pa
 
   return shopId;
 }
+
 
 // Obtener una tienda específica
 async function getShop(shopId) {
