@@ -1,10 +1,10 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { db } = require('../firebase');
+const { cookieConfig, isProduction } = require('../utils/config');
 
 const SECRET_KEY = process.env.SECRET_KEY;
 const REFRESH_SECRET_KEY = process.env.REFRESH_SECRET_KEY;
-
 
 async function register(req, res) {
   const { name = null, email, password } = req.body;
@@ -49,35 +49,42 @@ async function login(req, res) {
     return res.status(400).json({ message: 'Contraseña incorrecta' });
   }
 
-  const token = jwt.sign({ id: userDoc.id, email: user.email, role: user.role }, SECRET_KEY, { expiresIn: '15m' });
+  // Generar token JWT
+  const token = jwt.sign({ id: userDoc.id, email: user.email, role: user.role }, SECRET_KEY, {
+    expiresIn: '15m',
+  });
   const refreshToken = jwt.sign({ email: user.email }, REFRESH_SECRET_KEY);
 
+  //console.log('Token generado:', token); // Imprimir token en consola
+
+  // Guardar refreshToken en la base de datos (opcional)
   await db.collection('tokens').doc(userDoc.id).set({ refresh_token: refreshToken });
 
-  // Configura la cookie HttpOnly
-  res.cookie('token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 15 * 60 * 1000, // 15 minutos
-  });
+  // Configura la cookie HttpOnly en producción
+  if (process.env.NODE_ENV === 'production') {
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true, // Solo HTTPS
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000, // 15 minutos
+    });
+    //console.log('Token configurado en cookies');
+  } else {
+    //console.log('Modo desarrollo: enviando token en la respuesta');
+  }
 
-  res.json({ message: 'Inicio de sesión exitoso', refreshToken });
+  // Enviar el token en la respuesta para desarrollo
+  res.json({ message: 'Inicio de sesión exitoso', token, refreshToken });
 }
+
 
 async function refreshToken(req, res) {
   const { refreshToken } = req.body;
-
   const decoded = jwt.verify(refreshToken, REFRESH_SECRET_KEY);
+
   const newToken = jwt.sign({ email: decoded.email }, SECRET_KEY, { expiresIn: '15m' });
 
-  // Opcional: Actualizar el token en la cookie
-  res.cookie('token', newToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-    maxAge: 15 * 60 * 1000, // 15 minutos
-  });
+  res.cookie('token', newToken, cookieConfig);
 
   res.json({ token: newToken });
 }
@@ -89,13 +96,7 @@ async function logout(req, res) {
     await db.collection('tokens').doc(decoded.id).delete();
   }
 
-  // Limpiar la cookie de autenticación
-  res.clearCookie('token', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-  });
-
+  res.clearCookie('token', cookieConfig);
   res.json({ message: 'Sesión cerrada exitosamente' });
 }
 
