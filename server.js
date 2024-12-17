@@ -14,11 +14,24 @@ const syncRoutes = require('./routes/syncRoutes');
 const { isProduction, sessionConfig } = require('./utils/config');
 
 // Validar variables de entorno
-['SECRET_KEY', 'REFRESH_SECRET_KEY', 'DEFAULT_ADMIN_NAME', 'DEFAULT_ADMIN_EMAIL', 'DEFAULT_ADMIN_PASSWORD', 'ENCRYPTION_KEY', 'SESSION_SECRET'].forEach((envVar) => {
+[
+  'DEFAULT_ADMIN_NAME',
+  'DEFAULT_ADMIN_EMAIL',
+  'DEFAULT_ADMIN_PASSWORD',
+  'FRONTEND_URL',
+  'NODE_ENV',
+  'PORT',
+  'SECRET_KEY',
+  'REFRESH_SECRET_KEY',
+  'SESSION_SECRET',
+  'ENCRYPTION_KEY',
+  'CLOUD_FUNCTION_SYNC_URL'
+].forEach((envVar) => {
   if (!process.env[envVar]) {
     throw new Error(`La variable de entorno ${envVar} es obligatoria`);
   }
 });
+
 
 const app = express();
 app.use(express.json());

@@ -12,14 +12,14 @@ router.post('/:shopId', authenticate, asyncHandler(async (req, res) => {
   console.log(`ID del usuario autenticado: ${req.user.id}, Rol: ${req.user.role}`);
   console.log(`ShopId recibido: ${shopId}`);
 
-  await initiateSync({
+  const response = await initiateSync({
     userId: req.user.id,
     shopId,
     userRole: req.user.role
   });
 
-  res.status(202).json({ message: 'Sincronización iniciada correctamente.' });
+  res.status(202).json(response); // Respuesta inmediata
 }));
 
-
 module.exports = router;
+
