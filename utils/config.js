@@ -22,15 +22,19 @@ const sessionConfig = {
 };
 
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'https://18qqdw9d-3005.uks1.devtunnels.ms' // <-- tu dev tunnel
+  ],
   credentials: true,
   allowedHeaders: [
     'Content-Type',
     'X-CSRF-Token',
     'Authorization'
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'], 
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
 };
+
 
 module.exports = {
   isProduction,

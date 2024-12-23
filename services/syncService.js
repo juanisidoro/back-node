@@ -41,6 +41,20 @@ async function initiateSync({ userId, shopId, userRole }) {
       console.log(`CLOUD_FUNCTION_SYNC_URL: ${CLOUD_FUNCTION_SYNC_URL}`);
       console.log(`Credenciales descifradas: Usuario=${username}`);
 
+
+      if (!shopId || !ownerUserId || !site_url || !username || !password) {
+        throw new Error('Faltan parámetros obligatorios para la sincronización.');
+      }
+      
+      console.log(`Parámetros enviados a la Cloud Function:
+        shopId: ${shopId},
+        ownerUserId: ${ownerUserId},
+        site_url: ${site_url},
+        basic_auth_username: ${username ? '****' : 'MISSING'},
+        basic_auth_password: ${password ? '****' : 'MISSING'}
+      `);
+      
+
       // Llamar a la Cloud Function
       const response = await fetch(CLOUD_FUNCTION_SYNC_URL, {
         method: 'POST',
@@ -54,7 +68,7 @@ async function initiateSync({ userId, shopId, userRole }) {
         })
       });
 
-      const result = await response.json();
+      result = await response.json();
 
       if (response.ok) {
         console.log(`Cloud Function completada: ${result.message}`);
@@ -88,7 +102,7 @@ async function completeSync({ shopId, success }) {
     last_sync_success: success,
     sync_status: success ? 'completed' : 'failed'
   });
-
+/*
   const shopDoc = await shopRef.get();
   if (shopDoc.exists) {
     const shopData = shopDoc.data();
@@ -101,6 +115,8 @@ async function completeSync({ shopId, success }) {
       initiator: { role: 'system' }
     });
   }
+*/
+
 }
 
 module.exports = { initiateSync, completeSync };

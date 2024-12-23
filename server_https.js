@@ -13,6 +13,7 @@ const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const shopRoutes = require('./routes/shopRoutes');
 const syncRoutes = require('./routes/syncRoutes');
+const webhookRoutes = require("./routes/webhookRoutes");
 const { isProduction, sessionConfig } = require('./utils/config');
 
 // Validar variables de entorno
@@ -81,6 +82,8 @@ app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/shops', shopRoutes);
 app.use('/sync', syncRoutes);
+//app.use("/webhook", webhookRoutes);
+
 
 // Controlador de errores global
 app.use((err, req, res, next) => {
