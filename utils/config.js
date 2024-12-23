@@ -29,6 +29,7 @@ const corsOptions = {
     'X-CSRF-Token',
     'Authorization'
   ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'], 
 };
 
 module.exports = {

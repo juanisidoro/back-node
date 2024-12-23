@@ -1,4 +1,4 @@
 node_modules/
 firebase-service-account.json
-server_v1.js
 .env
+certs/
