@@ -1,23 +1,5 @@
-const { db } = require('../firebase');
+const { db } = require('./firebase'); // Usa tu inicialización de Firestore
 
-async function createNotification({ userId, shopId, type, message, initiator, success = null }) {
-  const notificationRef = db.collection(`notifications/${userId}/${shopId}`);
-  await notificationRef.add({
-    shop_id: shopId,
-    user_id: userId,
-    type,
-    message,
-    created_at: new Date().toISOString(),
-    success,
-    initiator,
-    read: false
-  });
-  console.log(`Notificación creada: ${message}`);
-}
-
-
-
-// Obtener todos los usuarios
 async function getAllUsers() {
   const userIds = [];
   try {
@@ -33,7 +15,6 @@ async function getAllUsers() {
   return userIds;
 }
 
-// Obtener tiendas de un usuario
 async function getShopsForUser(userId) {
   const shopIds = [];
   try {
@@ -49,7 +30,6 @@ async function getShopsForUser(userId) {
   return shopIds;
 }
 
-// Obtener notificaciones de una tienda
 async function getNotificationsForShop(userId, shopId) {
   const notifications = [];
   try {
@@ -69,7 +49,6 @@ async function getNotificationsForShop(userId, shopId) {
   return notifications;
 }
 
-// Obtener todas las notificaciones
 async function getAllNotifications() {
   try {
     const allNotifications = [];
@@ -91,4 +70,7 @@ async function getAllNotifications() {
   }
 }
 
-module.exports = { createNotification, getAllNotifications  };
+// Ejecutar el script
+getAllNotifications().then((notifications) => {
+  console.log('Notificaciones obtenidas:', notifications);
+});

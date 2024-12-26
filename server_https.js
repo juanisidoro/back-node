@@ -13,6 +13,8 @@ const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const shopRoutes = require('./routes/shopRoutes');
 const syncRoutes = require('./routes/syncRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+
 const webhookRoutes = require("./routes/webhookRoutes");
 const { isProduction, sessionConfig } = require('./utils/config');
 
@@ -82,6 +84,8 @@ app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/shops', shopRoutes);
 app.use('/sync', syncRoutes);
+app.use('/notifications', notificationRoutes);
+
 //app.use("/webhook", webhookRoutes);
 
 
