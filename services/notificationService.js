@@ -1,94 +1,81 @@
 const { db } = require('../firebase');
 
-async function createNotification({ userId, shopId, type, message, initiator, success = null }) {
-  const notificationRef = db.collection(`notifications/${userId}/${shopId}`);
+async function createNotification({ type, timestamp, actor, resource, status, message }) {
+  const notificationRef = db.collection(`notifications/${resource.userId}/${resource.shopId}`);
   await notificationRef.add({
-    shop_id: shopId,
-    user_id: userId,
     type,
-    message,
-    created_at: new Date().toISOString(),
-    success,
-    initiator,
-    read: false
+    timestamp,
+    actor,
+    resource,
+    status,
+    message
   });
   console.log(`Notificación creada: ${message}`);
 }
 
-
-
-// Obtener todos los usuarios
 async function getAllUsers() {
   const userIds = [];
   try {
     const usersSnapshot = await db.collection('users').get();
-    console.log(`Usuarios encontrados: ${usersSnapshot.size}`);
-    usersSnapshot.docs.forEach((doc) => {
-      userIds.push(doc.id);
-      console.log(`Usuario ID: ${doc.id}`);
-    });
+    usersSnapshot.forEach((doc) => userIds.push(doc.id));
   } catch (error) {
     console.error('Error al listar usuarios:', error);
   }
   return userIds;
 }
 
-// Obtener tiendas de un usuario
 async function getShopsForUser(userId) {
   const shopIds = [];
   try {
     const shopsSnapshot = await db.collection('shops').where('ownerUserId', '==', userId).get();
-    console.log(`Tiendas encontradas para el usuario ${userId}: ${shopsSnapshot.size}`);
-    shopsSnapshot.docs.forEach((doc) => {
-      shopIds.push(doc.id);
-      console.log(`  Tienda ID: ${doc.id}`);
-    });
+    shopsSnapshot.forEach((doc) => shopIds.push(doc.id));
   } catch (error) {
     console.error(`Error al listar tiendas para el usuario ${userId}:`, error);
   }
   return shopIds;
 }
 
-// Obtener notificaciones de una tienda
 async function getNotificationsForShop(userId, shopId) {
   const notifications = [];
   try {
     const notificationsRef = db.collection(`notifications/${userId}/${shopId}`);
     const notificationsSnapshot = await notificationsRef.get();
-    console.log(`Notificaciones encontradas para la tienda ${shopId} del usuario ${userId}: ${notificationsSnapshot.size}`);
-    notificationsSnapshot.docs.forEach((doc) => {
-      notifications.push({
-        notificationId: doc.id,
-        ...doc.data(),
-      });
-      console.log(`    Notificación ID: ${doc.id}`);
-    });
+    notificationsSnapshot.forEach((doc) => notifications.push({ notificationId: doc.id, ...doc.data() }));
   } catch (error) {
     console.error(`Error al listar notificaciones para la tienda ${shopId} del usuario ${userId}:`, error);
   }
   return notifications;
 }
 
-// Obtener todas las notificaciones
 async function getAllNotifications() {
   try {
     const allNotifications = [];
     const userIds = await getAllUsers();
-
+    console.log(userIds);
     for (const userId of userIds) {
       const shopIds = await getShopsForUser(userId);
-
+      console.log(shopIds);
       for (const shopId of shopIds) {
         const notifications = await getNotificationsForShop(userId, shopId);
         allNotifications.push(...notifications);
       }
+      console.log(allNotifications);
     }
-
-    console.log(`Total de notificaciones encontradas: ${allNotifications.length}`);
     return allNotifications;
   } catch (error) {
     console.error('Error al obtener todas las notificaciones:', error);
   }
 }
 
-module.exports = { createNotification, getAllNotifications  };
+async function deleteNotification(userId, shopId, notificationId) {
+  try {
+    const notificationRef = db.collection(`notifications/${userId}/${shopId}`).doc(notificationId);
+    await notificationRef.delete();
+    console.log(`Notificación con ID ${notificationId} eliminada correctamente.`);
+  } catch (error) {
+    console.error(`Error al eliminar la notificación ${notificationId}:`, error);
+    throw new Error('No se pudo eliminar la notificación.');
+  }
+}
+
+module.exports = { createNotification, getAllNotifications,deleteNotification };

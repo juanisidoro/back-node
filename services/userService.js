@@ -1,4 +1,5 @@
 const { db } = require('../firebase');
+const admin = require('firebase-admin');
 const { encrypt } = require('../utils/cryptoUtil');
 
 // Obtener todos los usuarios (para admin)
@@ -107,4 +108,119 @@ async function deleteUser(req, res) {
   res.json({ message: 'Usuario eliminado con éxito' });
 }
 
-module.exports = { getAuthenticatedUser, getUserById, updateUser, deleteUser };
+/**
+ * Validar la existencia de un usuario y una tienda.
+ * @param {string} userId
+ * @param {string} shopId
+ * @returns {Promise<{userDoc: DocumentSnapshot, shopDoc: DocumentSnapshot}>}
+ */
+async function validateUserAndShop(userId, shopId) {
+  if (!userId || typeof userId !== 'string' || !userId.trim()) {
+    const error = new Error('El ID del usuario es inválido o está vacío.');
+    error.statusCode = 400; // HTTP 400: Bad Request
+    throw error;
+  }
+
+  if (!shopId || typeof shopId !== 'string' || !shopId.trim()) {
+    const error = new Error('El ID de la tienda es inválido o está vacío.');
+    error.statusCode = 400; // HTTP 400: Bad Request
+    throw error;
+  }
+
+  const userRef = db.collection('users').doc(userId);
+  const shopRef = db.collection('shops').doc(shopId);
+
+  const [userDoc, shopDoc] = await Promise.all([userRef.get(), shopRef.get()]);
+
+  if (!userDoc.exists) {
+    const error = new Error(`Usuario con ID ${userId} no encontrado.`);
+    error.statusCode = 404; // HTTP 404: Not Found
+    throw error;
+  }
+
+  if (!shopDoc.exists) {
+    const error = new Error(`Tienda con ID ${shopId} no encontrada.`);
+    error.statusCode = 404; // HTTP 404: Not Found
+    throw error;
+  }
+
+  return { userDoc, shopDoc };
+}
+
+/**
+ * Asignar o actualizar una tienda para un usuario.
+ * @param {string} userId
+ * @param {string} shopId
+ * @param {boolean} isOwner
+ * @param {boolean} notifications_enabled
+ * @returns {Promise<{message: string}>}
+ */
+async function assignShopToUser(userId, shopId, isOwner = false, notifications_enabled = true) {
+  const { userDoc, shopDoc } = await validateUserAndShop(userId, shopId);
+
+  const shopData = shopDoc.data();
+  const userData = userDoc.data();
+
+  // Actualizar miembros de la tienda
+  let members = shopData.members || [];
+  const existingMemberIndex = members.findIndex(member => member.userId === userId);
+
+  if (existingMemberIndex !== -1) {
+    // Actualizar miembro existente
+    members[existingMemberIndex] = {
+      ...members[existingMemberIndex],
+      isOwner,
+      notifications_enabled
+    };
+  } else {
+    // Agregar nuevo miembro
+    members.push({ userId, isOwner, notifications_enabled });
+  }
+
+  await db.collection('shops').doc(shopId).update({ members });
+
+  // Actualizar perfil del usuario
+  const userProfileShops = userData.profile.shops || [];
+  const shopExistsInProfile = userProfileShops.some(shop => shop.shop_id === shopId);
+
+  if (!shopExistsInProfile) {
+    await db.collection('users').doc(userId).update({
+      'profile.shops': admin.firestore.FieldValue.arrayUnion({ shop_id: shopId })
+    });
+  }
+
+  return { message: 'Tienda asignada o actualizada correctamente.' };
+}
+
+/**
+ * Eliminar una tienda asignada a un usuario.
+ * @param {string} userId
+ * @param {string} shopId
+ * @returns {Promise<{message: string}>}
+ */
+async function removeShopFromUser(userId, shopId) {
+  const { userDoc, shopDoc } = await validateUserAndShop(userId, shopId);
+
+  const shopData = shopDoc.data();
+  const userData = userDoc.data();
+
+  // Actualizar miembros de la tienda
+  const updatedMembers = (shopData.members || []).filter(member => member.userId !== userId);
+  await db.collection('shops').doc(shopId).update({ members: updatedMembers });
+
+  // Actualizar perfil del usuario
+  const updatedShops = (userData.profile.shops || []).filter(shop => shop.shop_id !== shopId);
+  await db.collection('users').doc(userId).update({ 'profile.shops': updatedShops });
+
+  return { message: 'Relación tienda-usuario eliminada correctamente.' };
+}
+
+module.exports = {
+  validateUserAndShop,
+  assignShopToUser,
+  removeShopFromUser,
+};
+
+
+
+module.exports = { assignShopToUser, removeShopFromUser, getAuthenticatedUser, getUserById, updateUser, deleteUser };

@@ -1,23 +1,20 @@
 const express = require('express');
 const asyncHandler = require('express-async-handler');
-const { authenticate } = require('../middlewares/authMiddleware');
-const { createShop, getShop, getUserShops, deleteShop } = require('../services/shopService');
+const { authenticate, authorizeAdmin } = require('../middlewares/authMiddleware');
+const { createShop, getShop, getUserShops, deleteShop, getAllShops } = require('../services/shopService');
 
 const router = express.Router();
 
-// Crear una nueva tienda para el usuario autenticado o un usuario específico (solo admin)
-router.post('/', authenticate, asyncHandler(async (req, res) => {
-  const { site_url, basic_auth_username, basic_auth_password, ownerUserId } = req.body;
-
-  // Determinar el ID del usuario propietario de la tienda
-  const userId = req.user.role === 'admin' && ownerUserId ? ownerUserId : req.user.id;
+// Crear una nueva tienda (solo admin)
+//router.post('/', authenticate, authorizeAdmin, asyncHandler(async (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
+  const { site_url, basic_auth_username, basic_auth_password } = req.body;
 
   // Crear la tienda
   const shopId = await createShop({
-    userId,
     site_url,
     basic_auth_username,
-    basic_auth_password
+    basic_auth_password,
   });
 
   res.status(201).json({ shop_id: shopId });
@@ -29,10 +26,18 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
   res.status(200).json(shops);
 }));
 
+// Obtener todas las tiendas de todos los usuarios (solo admin)
+//router.get('/getall', authenticate, authorizeAdmin, asyncHandler(async (req, res) => {
+router.get('/getall', asyncHandler(async (req, res) => {
+  const allShops = await getAllShops();
+  res.status(200).json(allShops);
+}));
+
 // Obtener una tienda específica
-router.get('/:shopId', authenticate, asyncHandler(async (req, res) => {
+//router.get('/:shopId', authenticate, asyncHandler(async (req, res) => {
+router.get('/:shopId', asyncHandler(async (req, res) => {
   const shop = await getShop(req.params.shopId);
-  if (!shop || shop.ownerUserId !== req.user.id) {
+  if (!shop) {
     return res.status(404).json({ message: 'Tienda no encontrada o no autorizada' });
   }
   res.status(200).json(shop);
@@ -44,8 +49,6 @@ router.delete('/:shopId', authenticate, asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const userRole = req.user.role;
 
-  console.log(`Eliminando tienda con ID: ${shopId} para usuario: ${userId}, role: ${userRole}`);
-
   const success = await deleteShop(userId, shopId, userRole);
 
   if (!success) {
@@ -54,6 +57,5 @@ router.delete('/:shopId', authenticate, asyncHandler(async (req, res) => {
 
   res.status(200).json({ message: 'Tienda eliminada correctamente.' });
 }));
-
 
 module.exports = router;
