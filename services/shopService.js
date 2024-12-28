@@ -54,41 +54,46 @@ async function getAllShops() {
   return shopsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
-// Eliminar una tienda específica
-async function deleteShop(userId, shopId, userRole) {
+// Eliminar una tienda solo si no tiene usuarios asignados
+async function deleteShopWithNoMembers(shopId) {
   const shopRef = db.collection('shops').doc(shopId);
   const shopDoc = await shopRef.get();
 
-  console.log(`Intentando eliminar tienda: shopId=${shopId}, userId=${userId}, role=${userRole}`);
-  console.log('Datos de la tienda obtenidos:', shopDoc.exists ? shopDoc.data() : 'No existe');
-
   if (!shopDoc.exists) {
-    console.log('Tienda no encontrada.');
-    return false;
+    console.log('Tienda no encontrada:', shopId);
+    throw new Error('La tienda especificada no existe.');
   }
 
-  // Permitir a administradores eliminar cualquier tienda
   const shopData = shopDoc.data();
-  if (userRole !== 'admin' && shopData.ownerUserId !== userId) {
-    console.log('No autorizado. El usuario no es propietario de la tienda.');
-    return false; // No autorizado
+
+  // Verificar si la tienda tiene usuarios asignados
+  if (shopData.members && shopData.members.length > 0) {
+    console.log('La tienda tiene usuarios asignados:', shopData.members);
+    return false; // No eliminar si hay usuarios
   }
 
-  console.log('Validación exitosa. Eliminando la tienda...');
-
-  // Eliminar la tienda
+  // Eliminar la tienda de la colección 'shops'
   await shopRef.delete();
 
-  // Eliminar referencia de la tienda en el perfil del usuario propietario
-  const ownerUserId = shopData.ownerUserId; // Usuario propietario original
-  const ownerUserRef = db.collection('users').doc(ownerUserId);
-  await ownerUserRef.update({
-    'profile.shops': admin.firestore.FieldValue.arrayRemove({ shop_id: shopId })
+  console.log('Tienda eliminada de la colección shops:', shopId);
+
+  // Actualizar las referencias en la colección 'users'
+  const usersRef = db.collection('users');
+  const usersSnapshot = await usersRef.where('profile.shops', 'array-contains', { shop_id: shopId }).get();
+
+  const batch = db.batch();
+  usersSnapshot.forEach(userDoc => {
+    const userRef = usersRef.doc(userDoc.id);
+    batch.update(userRef, {
+      'profile.shops': admin.firestore.FieldValue.arrayRemove({ shop_id: shopId }),
+    });
   });
 
-  console.log('Tienda eliminada y referencia actualizada en el perfil del propietario.');
+  await batch.commit();
 
-  return true;
+  console.log('Referencias a la tienda eliminadas de los usuarios:', shopId);
+
+  return true; // Eliminación exitosa
 }
 
 
@@ -119,4 +124,4 @@ async function verifyShopOwnership(userId, shopId, userRole) {
 
 
 
-module.exports = { createShop, getShop, getAllShops, getUserShops, deleteShop, verifyShopOwnership };
+module.exports = { createShop, getShop, getAllShops, getUserShops, deleteShopWithNoMembers, verifyShopOwnership };

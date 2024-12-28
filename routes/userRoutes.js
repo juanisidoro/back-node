@@ -13,7 +13,8 @@ router.get('/', authenticate, asyncHandler(getAuthenticatedUser));
 router.put('/', authenticate, asyncHandler(updateUser));
 
 // Obtener datos de un usuario específico (admin)
-router.get('/:id', authenticate, authorizeAdmin, asyncHandler(getUserById));
+//router.get('/:id', authenticate, authorizeAdmin, asyncHandler(getUserById));
+router.get('/:id', asyncHandler(getUserById));
 
 // Actualizar datos de un usuario específico (admin)
 router.put('/:id', authenticate, authorizeAdmin, asyncHandler(updateUser));

@@ -2,6 +2,9 @@ const express = require('express');
 const asyncHandler = require('express-async-handler');
 const { authenticate, authorizeAdmin } = require('../middlewares/authMiddleware');
 const { createShop, getShop, getUserShops, deleteShop, getAllShops } = require('../services/shopService');
+const { removeShopWithNoMembersHandler } = require('../controllers/shopController');
+
+
 
 const router = express.Router();
 
@@ -21,7 +24,8 @@ router.post('/', asyncHandler(async (req, res) => {
 }));
 
 // Obtener todas las tiendas del usuario autenticado
-router.get('/', authenticate, asyncHandler(async (req, res) => {
+//router.get('/', authenticate, asyncHandler(async (req, res) => {
+router.get('/', asyncHandler(async (req, res) => {
   const shops = await getUserShops(req.user.id);
   res.status(200).json(shops);
 }));
@@ -44,18 +48,9 @@ router.get('/:shopId', asyncHandler(async (req, res) => {
 }));
 
 // Eliminar una tienda específica
-router.delete('/:shopId', authenticate, asyncHandler(async (req, res) => {
-  const { shopId } = req.params;
-  const userId = req.user.id;
-  const userRole = req.user.role;
+//router.delete('/:shopId', authenticate, asyncHandler(async (req, res) => {
+// Eliminar una tienda sin usuarios asignados
+router.delete('/:shopId', asyncHandler(removeShopWithNoMembersHandler));
 
-  const success = await deleteShop(userId, shopId, userRole);
-
-  if (!success) {
-    return res.status(404).json({ message: 'No se pudo eliminar la tienda. Verifica el ID o los permisos.' });
-  }
-
-  res.status(200).json({ message: 'Tienda eliminada correctamente.' });
-}));
 
 module.exports = router;
