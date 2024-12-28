@@ -1,6 +1,12 @@
 const { db } = require('../firebase');
 
 async function createNotification({ type, timestamp, actor, resource, status, message }) {
+  console.log('Datos recibidos en createNotification:', { type, timestamp, actor, resource, status, message });
+
+  if (!resource || !resource.userId || !resource.shopId) {
+    throw new Error('Datos de recurso incompletos. Asegúrate de proporcionar userId y shopId.');
+  }
+
   const notificationRef = db.collection(`notifications/${resource.userId}/${resource.shopId}`);
   await notificationRef.add({
     type,
@@ -12,6 +18,8 @@ async function createNotification({ type, timestamp, actor, resource, status, me
   });
   console.log(`Notificación creada: ${message}`);
 }
+
+
 
 async function getAllUsers() {
   const userIds = [];
@@ -27,13 +35,21 @@ async function getAllUsers() {
 async function getShopsForUser(userId) {
   const shopIds = [];
   try {
-    const shopsSnapshot = await db.collection('shops').where('ownerUserId', '==', userId).get();
-    shopsSnapshot.forEach((doc) => shopIds.push(doc.id));
+    // Obtener todas las tiendas
+    const shopsSnapshot = await db.collection('shops').get();
+    // Filtrar las tiendas donde el usuario está en `members`
+    shopsSnapshot.forEach((doc) => {
+      const shopData = doc.data();
+      if (shopData.members && shopData.members.some(member => member.userId === userId)) {
+        shopIds.push(doc.id);
+      }
+    });
   } catch (error) {
     console.error(`Error al listar tiendas para el usuario ${userId}:`, error);
   }
   return shopIds;
 }
+
 
 async function getNotificationsForShop(userId, shopId) {
   const notifications = [];

@@ -9,9 +9,9 @@ const router = express.Router();
  * GET /notifications/all
  * Devuelve todas las notificaciones existentes (requiere rol admin)
  */
-//router.get('/all', authenticate, asyncHandler(async (req, res) => {
-router.get('/all', asyncHandler(async (req, res) => {
-
+router.get('/all', authenticate, asyncHandler(async (req, res) => {
+//router.get('/all', asyncHandler(async (req, res) => {
+  console.log("INICIADO");
   try {
     // Obtener todas las notificaciones utilizando el servicio
     const notifications = await getAllNotifications();

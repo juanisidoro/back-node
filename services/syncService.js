@@ -16,7 +16,9 @@ async function initiateSync({ userId, shopId, userRole }) {
 
   if (!shopDoc.exists) throw new Error('Tienda no encontrada.');
   const { site_url, basic_auth_username, basic_auth_password, ownerUserId } = shopDoc.data();
-
+  const resource = { shopId, userId };
+  console.log('Datos de resource antes de createNotification:', resource);
+  
   // Notificación de inicio
   await createNotification({
     type: 'sync.started',
@@ -35,7 +37,7 @@ async function initiateSync({ userId, shopId, userRole }) {
       const username = decrypt(basic_auth_username);
       const password = decrypt(basic_auth_password);
 
-      if (!shopId || !ownerUserId || !site_url || !username || !password) {
+      if (!shopId || !userId || !site_url || !username || !password) {
         throw new Error('Faltan parámetros obligatorios para la sincronización.');
       }
 
@@ -44,7 +46,7 @@ async function initiateSync({ userId, shopId, userRole }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           shopId,
-          ownerUserId,
+          ownerUserId:userId ,
           site_url,
           basic_auth_username: username,
           basic_auth_password: password
@@ -59,7 +61,7 @@ async function initiateSync({ userId, shopId, userRole }) {
         type: 'sync.failed',
         timestamp: new Date().toISOString(),
         actor: { role: 'system', id: null },
-        resource: { shopId, userId: ownerUserId },
+        resource: { shopId, userId },
         status: { success: false, read: false },
         message: 'Error durante la sincronización.'
       });

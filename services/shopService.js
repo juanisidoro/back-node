@@ -116,11 +116,19 @@ async function verifyShopOwnership(userId, shopId, userRole) {
     return true;
   }
 
-  // Validación para usuarios normales
-  console.log(`Propietario esperado: ${shop.ownerUserId}`);
+  // Buscar el propietario en el campo `members`
+  const owner = shop.members.find(member => member.isOwner);
+  if (!owner) {
+    console.log('No se encontró un propietario para esta tienda.');
+    return false;
+  }
+
+  // Imprimir el propietario esperado
+  console.log(`Propietario esperado: ${owner.userId}`);
   console.log(`Usuario autenticado: ${userId}`);
-  return shop.ownerUserId === userId;
+  return owner.userId === userId;
 }
+
 
 
 
