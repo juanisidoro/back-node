@@ -2,6 +2,7 @@ const express = require('express');
 const asyncHandler = require('express-async-handler');
 const { authenticate } = require('../middlewares/authMiddleware');
 const { getAllNotifications, deleteNotification } = require('../services/notificationService');
+const { createNotification } = require ('../services/notificationService')
 
 const router = express.Router();
 
@@ -10,11 +11,9 @@ const router = express.Router();
  * Devuelve todas las notificaciones existentes (requiere rol admin)
  */
 router.get('/all', authenticate, asyncHandler(async (req, res) => {
-//router.get('/all', asyncHandler(async (req, res) => {
-  console.log("INICIADO");
   try {
-    // Obtener todas las notificaciones utilizando el servicio
-    const notifications = await getAllNotifications();
+    const { sortOrder = 'desc' } = req.query; // Por defecto, 'desc'
+    const notifications = await getAllNotifications(sortOrder);
     res.status(200).json(notifications);
   } catch (error) {
     console.error('Error al obtener las notificaciones:', error);
@@ -22,20 +21,34 @@ router.get('/all', authenticate, asyncHandler(async (req, res) => {
   }
 }));
 
+
 /**
  * POST /notifications/webhook
  * Recibe peticiones para procesarlas posteriormente.
  */
-//router.post('/events', authenticate, asyncHandler(async (req, res) => {
 router.post('/events', asyncHandler(async (req, res) => {
   const notification = req.body;
 
   // Log del JSON recibido
   console.log('Webhook recibido:', notification);
 
-  // Responder sin cuerpo
-  res.sendStatus(202);
+  try {
+    // Verificar y guardar la notificación en la base de datos
+    if (notification && notification.type && notification.resource) {
+      await createNotification(notification);
+      //console.log('Notificación guardada en la base de datos:', notification);
+    } else {
+      console.warn('Webhook recibido con datos incompletos:', notification);
+    }
+
+    // Responder con estado 202
+    res.sendStatus(202);
+  } catch (error) {
+    console.error('Error al procesar el webhook:', error.message);
+    res.status(500).json({ message: 'Error al procesar el webhook.' });
+  }
 }));
+
 
 
 

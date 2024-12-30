@@ -1,7 +1,7 @@
 const { db } = require('../firebase');
 
 async function createNotification({ type, timestamp, actor, resource, status, message }) {
-  console.log('Datos recibidos en createNotification:', { type, timestamp, actor, resource, status, message });
+  //console.log('Datos recibidos en createNotification:', { type, timestamp, actor, resource, status, message });
 
   if (!resource || !resource.userId || !resource.shopId) {
     throw new Error('Datos de recurso incompletos. Asegúrate de proporcionar userId y shopId.');
@@ -16,7 +16,7 @@ async function createNotification({ type, timestamp, actor, resource, status, me
     status,
     message
   });
-  console.log(`Notificación creada: ${message}`);
+  //console.log(`Notificación creada: ${message}`);
 }
 
 
@@ -63,25 +63,32 @@ async function getNotificationsForShop(userId, shopId) {
   return notifications;
 }
 
-async function getAllNotifications() {
+async function getAllNotifications(sortOrder = 'desc') {
   try {
     const allNotifications = [];
     const userIds = await getAllUsers();
-    console.log(userIds);
     for (const userId of userIds) {
       const shopIds = await getShopsForUser(userId);
-      console.log(shopIds);
       for (const shopId of shopIds) {
         const notifications = await getNotificationsForShop(userId, shopId);
         allNotifications.push(...notifications);
       }
-      console.log(allNotifications);
     }
+
+    // Ordenar notificaciones por timestamp
+    allNotifications.sort((a, b) => {
+      const dateA = new Date(a.timestamp);
+      const dateB = new Date(b.timestamp);
+      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+    });
+
     return allNotifications;
   } catch (error) {
     console.error('Error al obtener todas las notificaciones:', error);
+    throw new Error('Error al obtener todas las notificaciones');
   }
 }
+
 
 async function deleteNotification(userId, shopId, notificationId) {
   try {
