@@ -8,7 +8,11 @@ const { createFrontendShopObject } = require('./frontendShopService/createFronte
 
 const CLOUD_FUNCTION_SYNC_URL = process.env.CLOUD_FUNCTION_SYNC_URL;
 
-// Función para obtener detalles de la tienda
+/* ==========================================================================
+   Funciones auxiliares internas
+   ========================================================================== */
+
+// Obtener info de la tienda
 async function getShopDetails(shopId) {
   const shopRef = db.collection('shops').doc(shopId);
   const shopDoc = await shopRef.get();
@@ -18,8 +22,6 @@ async function getShopDetails(shopId) {
   }
 
   const shopData = shopDoc.data();
-
-  // Extraer ownerUserId del array members
   const owner = shopData.members?.find(member => member.isOwner === true);
   const ownerUserId = owner?.userId;
 
@@ -30,7 +32,7 @@ async function getShopDetails(shopId) {
   return { shopRef, shopData, ownerUserId };
 }
 
-// Función para notificar eventos
+// Crear la notificación
 async function notifySyncEvent(type, shopId, userId, success, message) {
   const timestamp = new Date().toISOString();
   const actor = userId ? { role: 'system', id: userId } : { role: 'system', id: null };
@@ -46,7 +48,7 @@ async function notifySyncEvent(type, shopId, userId, success, message) {
   });
 }
 
-// Función para actualizar el estado de la tienda
+// Actualizar la tienda con un estado de sincronización
 async function updateShopSyncStatus(shopRef, status, additionalFields = {}) {
   await shopRef.update({
     sync_status: status,
@@ -54,34 +56,55 @@ async function updateShopSyncStatus(shopRef, status, additionalFields = {}) {
   });
 }
 
-// Función para verificar notificaciones existentes (sin requerir índice compuesto)
-async function checkExistingNotifications(shopId) {
-  const notificationsRef = db.collection('notifications');
+/*
+// (OPCIONAL) Si ya no la usas, elimina o comenta por completo esta función.
+// Función para verificar notificaciones existentes. 
+// Ya NO se usa si siempre quieres crear la notificación sync.completed.
+async function checkExistingNotifications(shopId, userId) {
+  const notificationsRef = db
+    .collection('notifications')
+    .doc(shopId)
+    .collection(userId);
+
   const querySnapshot = await notificationsRef
     .where('type', '==', 'sync.completed')
-    .where('resource.shopId', '==', shopId)
+    .orderBy('timestamp', 'desc')
+    .limit(1)
     .get();
 
-  const notifications = querySnapshot.docs.filter(doc => {
-    const data = doc.data();
-    const timestamp = new Date(data.timestamp);
-    return timestamp >= new Date(Date.now() - 60000); // Filtrar manualmente por tiempo
-  });
+  if (querySnapshot.empty) {
+    return false;
+  }
 
-  return notifications.length > 0;
+  const mostRecentNotification = querySnapshot.docs[0].data();
+  const notificationTimestamp = new Date(mostRecentNotification.timestamp);
+  const currentTimestamp = new Date();
+
+  // Comparar si la notificación más reciente es del último minuto
+  return currentTimestamp - notificationTimestamp < 60000; 
 }
+*/
 
-// Función para iniciar la sincronización
+/* ==========================================================================
+   Funciones principales: initiateSync y completeSync
+   ========================================================================== */
+
+// Iniciar la sincronización
 async function initiateSync({ userId, shopId, userRole }) {
+  // 1. Verificar propiedad
   const isOwner = await verifyShopOwnership(userId, shopId, userRole);
   if (!isOwner) throw new Error('No autorizado');
 
+  // 2. Obtener detalles de la tienda
   const { shopRef, shopData, ownerUserId } = await getShopDetails(shopId);
   const { site_url, basic_auth_username, basic_auth_password } = shopData;
 
+  // 3. Notificar que inicia
   await notifySyncEvent('sync.started', shopId, userId, true, 'Sincronización iniciada.');
+  // 4. Estado "in_progress"
   await updateShopSyncStatus(shopRef, 'in_progress');
 
+  // 5. Llamar a la función externa
   try {
     const username = decrypt(basic_auth_username);
     const password = decrypt(basic_auth_password);
@@ -103,34 +126,38 @@ async function initiateSync({ userId, shopId, userRole }) {
     });
 
     const result = await response.json();
-
     if (!response.ok) {
       throw new Error(result.message || `Error desconocido. Código de estado: ${response.status}`);
     }
 
+    // 6. Finalizar con éxito
     await completeSync({ shopId, success: true });
   } catch (error) {
+    console.error('[initiateSync] Error:', error.message);
+
+    // Actualizar estado a "failed"
     await updateShopSyncStatus(shopRef, 'failed');
+    // Notificar error
     await notifySyncEvent('sync.failed', shopId, userId, false, 'Error durante la sincronización.');
+
+    // Finalizar con "failed"
     await completeSync({ shopId, success: false });
   }
 }
 
-// Función para completar la sincronización
+// Completar la sincronización
 async function completeSync({ shopId, success }) {
+  // 1. Obtener detalles de la tienda
   const { shopRef, shopData, ownerUserId } = await getShopDetails(shopId);
   const now = new Date().toISOString();
 
+  // 2. Actualizar estado
   await updateShopSyncStatus(shopRef, success ? 'completed' : 'failed', {
     last_sync_date: now,
     last_sync_success: success,
   });
 
-  const hasExistingNotification = await checkExistingNotifications(shopId);
-  if (hasExistingNotification) {
-    return;
-  }
-
+  // 3. Si es exitoso, creamos el objeto en frontend
   if (success) {
     try {
       console.log('[completeSync] Creando el objeto frontend_shops...');
@@ -140,6 +167,7 @@ async function completeSync({ shopId, success }) {
     }
   }
 
+  // 4. Crear SIEMPRE la notificación "sync.completed"
   await notifySyncEvent(
     'sync.completed',
     shopId,
