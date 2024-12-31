@@ -3,6 +3,8 @@ const asyncHandler = require('express-async-handler');
 const { authenticate } = require('../middlewares/authMiddleware');
 const { getAllNotifications, deleteNotification } = require('../services/notificationService');
 const { createNotification } = require ('../services/notificationService')
+const { convertEcommerceEvent } = require('../adapter/eventToNotificationAdapter');
+const { handlerActionWoo } = require('../services/ecommerceActionHandler');
 
 const router = express.Router();
 
@@ -29,23 +31,32 @@ router.get('/all', authenticate, asyncHandler(async (req, res) => {
 router.post('/events', asyncHandler(async (req, res) => {
   const notification = req.body;
 
-  // Log del JSON recibido
-  console.log('Webhook recibido:', notification);
-
   try {
-    // Verificar y guardar la notificación en la base de datos
     if (notification && notification.type && notification.resource) {
+      // Procesar notificaciones tradicionales
+      console.log('Notificación estándar detectada:', notification);
       await createNotification(notification);
-      //console.log('Notificación guardada en la base de datos:', notification);
+    } else if (notification && notification.object_type && notification.action) {
+      // Procesar eventos de eCommerce
+      console.log('Evento de eCommerce detectado:', notification);
+
+      // Convertir el evento al nuevo formato
+      const convertedNotification = await convertEcommerceEvent(notification);
+      console.log(convertedNotification);
+      // Guardar la notificación en la base de datos
+      await createNotification(convertedNotification);
+
+      // Procesar la acción específica
+      await handlerActionWoo(convertedNotification);
     } else {
-      console.warn('Webhook recibido con datos incompletos:', notification);
+      console.warn('Evento no reconocido recibido:', notification);
+      return res.status(400).json({ message: 'Evento no reconocido.' });
     }
 
-    // Responder con estado 202
     res.sendStatus(202);
   } catch (error) {
-    console.error('Error al procesar el webhook:', error.message);
-    res.status(500).json({ message: 'Error al procesar el webhook.' });
+    console.error('Error al procesar el evento:', error.message);
+    res.status(500).json({ message: 'Error al procesar el evento.' });
   }
 }));
 
