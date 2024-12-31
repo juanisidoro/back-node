@@ -1,4 +1,6 @@
 const { db } = require('../../firebase');
+const { decrypt } = require('../../utils/cryptoUtil');
+
 
 async function getShopAndOwnerByOrigin(origin) {
     try {
@@ -42,4 +44,28 @@ async function getShopAndOwnerByOrigin(origin) {
   }
   
 
-module.exports = { getShopAndOwnerByOrigin };
+  async function getShopCredentials(shopId) {
+    try {
+      const shopDoc = await db.collection('shops').doc(shopId).get();
+  
+      if (!shopDoc.exists) {
+        throw new Error(`No se encontró la tienda con shopId: ${shopId}`);
+      }
+  
+      const shopData = shopDoc.data();
+      const basic_auth_username = decrypt(shopData.basic_auth_username);
+      const basic_auth_password = decrypt(shopData.basic_auth_password); // Desencriptar contraseña
+      const site_url = shopData.site_url;
+  
+      if (!basic_auth_username || !basic_auth_password || !site_url) {
+        throw new Error(`Credenciales o URL incompletas para la tienda con shopId: ${shopId}`);
+      }
+  
+      return { basic_auth_username, basic_auth_password, site_url };
+    } catch (error) {
+      console.error(`Error obteniendo credenciales de la tienda con shopId ${shopId}:`, error.message);
+      throw error;
+    }
+  }
+
+module.exports = { getShopAndOwnerByOrigin, getShopCredentials  };
