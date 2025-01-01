@@ -215,12 +215,33 @@ async function removeShopFromUser(userId, shopId) {
   return { message: 'Relación tienda-usuario eliminada correctamente.' };
 }
 
-module.exports = {
-  validateUserAndShop,
-  assignShopToUser,
-  removeShopFromUser,
-};
+/**
+ * Obtiene los IDs de las tiendas asociadas a un usuario.
+ * @param {string} userId - ID del usuario.
+ * @returns {Promise<string[]>} - Array de IDs de las tiendas asociadas.
+ */
+async function getUserAssignedShopIds(userId) {
+  try {
+    const userRef = db.collection('users').doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      throw new Error(`Usuario con ID=${userId} no encontrado`);
+    }
+
+    const userData = userDoc.data();
+    const shopIds = userData.profile?.shops || []; // Extrae los shop IDs del perfil
+
+    return shopIds;
+  } catch (error) {
+    console.error(`[USER SERVICE] Error al obtener las tiendas del usuario ID=${userId}: ${error.message}`);
+    throw error;
+  }
+}
 
 
 
-module.exports = { assignShopToUser, removeShopFromUser, getAuthenticatedUser, getUserById, updateUser, deleteUser };
+
+
+
+module.exports = { assignShopToUser,removeShopFromUser, getUserAssignedShopIds, getAuthenticatedUser, getUserById, updateUser, deleteUser, validateUserAndShop };

@@ -2,6 +2,9 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { db } = require('../firebase');
 const { cookieConfig, isProduction } = require('../utils/config');
+const { getUserAssignedShopIds } = require('./userService'); // 
+
+
 
 const SECRET_KEY = process.env.SECRET_KEY;
 const REFRESH_SECRET_KEY = process.env.REFRESH_SECRET_KEY;
@@ -34,8 +37,10 @@ async function register(req, res) {
 async function login(req, res) {
   const { email, password } = req.body;
 
+  // Buscar usuario por email
   const userRef = db.collection('users').where('profile.email', '==', email);
   const userSnapshot = await userRef.get();
+
   if (userSnapshot.empty) {
     return res.status(400).json({ message: 'Usuario no encontrado' });
   }
@@ -44,23 +49,47 @@ async function login(req, res) {
   const userData = userDoc.data();
   const user = userData.profile;
 
+  // Verificar contraseña
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) {
     return res.status(400).json({ message: 'Contraseña incorrecta' });
   }
 
+  // Obtener los shopIds solo si el usuario es de tipo "user"
+  let shopIds = undefined; // Mantener indefinido para administradores
+  if (user.role === 'user') {
+    try {
+      shopIds = await getUserAssignedShopIds(userDoc.id); // Obtener los IDs de las tiendas
+    } catch (error) {
+      console.error(`[LOGIN] Error al obtener tiendas para usuario ID=${userDoc.id}: ${error.message}`);
+      return res.status(500).json({ message: 'Error al obtener tiendas del usuario' });
+    }
+  }
+
   // Generar token JWT
-  const token = jwt.sign({ id: userDoc.id, email: user.email, role: user.role }, SECRET_KEY, {
+  const tokenPayload = {
+    id: userDoc.id,
+    email: user.email,
+    role: user.role,
+  };
+
+  // Solo incluir `shopIds` en el token si el usuario es de tipo "user"
+  if (shopIds) {
+    tokenPayload.shopIds = shopIds;
+  }
+
+  const token = jwt.sign(tokenPayload, SECRET_KEY, {
     expiresIn: '15m',
   });
+
   const refreshToken = jwt.sign({ email: user.email }, REFRESH_SECRET_KEY);
 
-  //console.log('Token generado:', token); // Imprimir token en consola
-
-  // Guardar refreshToken en la base de datos (opcional)
+  // Guardar refreshToken en la base de datos
   await db.collection('tokens').doc(userDoc.id).set({ refresh_token: refreshToken });
 
-  // Configura la cookie HttpOnly en producción
+  console.log(`[LOGIN] Inicio de sesión exitoso. Usuario: ${email}, Rol: ${user.role}`);
+
+  // Configurar la cookie HttpOnly en producción
   if (process.env.NODE_ENV === 'production') {
     res.cookie('token', token, {
       httpOnly: true,
@@ -68,13 +97,14 @@ async function login(req, res) {
       sameSite: 'strict',
       maxAge: 15 * 60 * 1000, // 15 minutos
     });
-    //console.log('Token configurado en cookies');
-  } else {
-    //console.log('Modo desarrollo: enviando token en la respuesta');
   }
 
-  // Enviar el token en la respuesta para desarrollo
-  res.json({ message: 'Inicio de sesión exitoso', token, refreshToken });
+  // Enviar solo el mensaje de éxito y el refreshToken en la respuesta
+  res.json({
+    message: 'Inicio de sesión exitoso',
+    token,
+    refreshToken,
+  });
 }
 
 

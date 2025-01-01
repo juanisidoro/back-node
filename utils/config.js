@@ -24,7 +24,8 @@ const sessionConfig = {
 const corsOptions = {
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
-    'https://18qqdw9d-3005.uks1.devtunnels.ms' // <-- tu dev tunnel
+    'https://18qqdw9d-3005.uks1.devtunnels.ms',
+    'https://localhost:4431'
   ],
   credentials: true,
   allowedHeaders: [
